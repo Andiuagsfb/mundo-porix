@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+:root {
+  --shadow: 0 12px 30px rgba(88, 61, 43, 0.08);
+}
+
+@theme inline {
+  --font-sans: var(--font-manrope);
+  --font-display: var(--font-dm-serif);
+}
+
+@theme {
+  --color-bg: #f6f0e7;
+  --color-surface: #fffdfc;
+  --color-surface2: #efe4d5;
+  --color-primary: #806044;
+  --color-dark: #583d2b;
+  --color-muted: #7e7064;
+  --color-line: #e5d9ca;
+  --color-sage: #87967c;
+  --color-danger: #a56e61;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-manrope), sans-serif;
+  color: #3d332d;
+  background: var(--color-bg);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.container {
+  width: min(calc(100% - 28px), 1280px);
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .container {
+    width: min(calc(100% - 36px), 1280px);
+  }
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-primary {
+  background: var(--color-dark);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+
+.btn-light {
+  background: rgba(255, 253, 249, 0.85);
+  border: 1px solid rgba(88, 61, 43, 0.1);
+  color: var(--color-dark);
+}
+
+/* Portada del producto (ilustración tipo libreta) */
+.product-art {
+  width: 120px;
+  height: 170px;
+  background: #fff9f0;
+  border-radius: 5px 12px 12px 5px;
+  box-shadow: 12px 16px 23px rgba(70, 49, 35, 0.14);
+  transform: rotate(-5deg);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 14px;
+  font: 1.3rem var(--font-dm-serif);
+  color: var(--color-dark);
+  position: relative;
+}
+
+.product-art.alt {
+  background: #d5e0d8;
+  transform: rotate(5deg);
+}
+
+.product-art.pink {
+  background: #ead8d3;
+  transform: rotate(-3deg);
+}
+
+.product-art-spine {
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #d9c4ab;
+}
+
+/* Drawer de cotización */
+.drawer {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 100;
+  width: min(420px, calc(100vw - 26px));
+  background: rgba(255, 253, 249, 0.98);
+  border: 1px solid var(--color-line);
+  border-radius: 20px;
+  padding: 19px;
+  box-shadow: 0 25px 65px rgba(61, 43, 30, 0.2);
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.25s;
+}
+
+.drawer.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  z-index: 120;
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  pointer-events: none;
+  background: var(--color-dark);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition: 0.2s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
