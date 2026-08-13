@@ -21,9 +21,9 @@ export default function Header() {
       <nav className="container grid h-[76px] grid-cols-[auto_1fr_auto] items-center gap-7">
         <a href="#inicio" className="flex items-center gap-[10px] font-extrabold text-dark">
           <span className="grid h-10 w-10 -rotate-[4deg] place-items-center rounded-xl bg-dark font-display text-[1.2rem] text-white">
-            C
+            M
           </span>
-          <span>Casa Papel</span>
+          <span>Mundo Pórix</span>
         </a>
         <div className="hidden justify-center gap-[25px] text-[0.82rem] font-bold text-muted md:flex">
           {navLinks.map((l) => (

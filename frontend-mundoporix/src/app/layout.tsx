@@ -14,7 +14,7 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Casa Papel | Librería & Papelería",
+  title: "Mundo Pórix | Librería & Papelería",
   description:
     "Catálogo de librería con la comodidad de un e-commerce: busca, filtra, compara precios y arma tu cotización en pocos pasos.",
 };

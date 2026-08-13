@@ -60,7 +60,7 @@ export const products: Product[] = [
   {
     id: "cartulina",
     name: "Cartulina",
-    brand: "Selección Casa Papel",
+    brand: "Selección Mundo Pórix",
     subtitle: "Varias tonalidades disponibles",
     price: 1500,
     category: "arte",

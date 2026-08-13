@@ -9,9 +9,9 @@ export default function Footer() {
           <div className="sm:col-span-2 lg:col-span-1">
             <a href="#inicio" className="flex items-center gap-[10px] font-extrabold text-dark">
               <span className="grid h-10 w-10 -rotate-[4deg] place-items-center rounded-xl bg-dark font-display text-[1.2rem] text-white">
-                C
+                M
               </span>
-              <span>Casa Papel</span>
+              <span>Mundo Pórix</span>
             </a>
             <p className="mt-[14px] max-w-[300px] text-[0.76rem] text-muted">
               Una librería pensada como tienda: fácil de explorar, agradable de
@@ -44,7 +44,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="flex flex-col justify-between gap-[7px] pt-[19px] text-[0.67rem] text-[#8B7B6E] sm:flex-row">
-          <span>© 2026 Casa Papel · Demo front-end</span>
+          <span>© 2026 Mundo Pórix · Demo front-end</span>
           <span>Editorial e-commerce · Café pastel</span>
         </div>
       </div>
