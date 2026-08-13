@@ -1,0 +1,263 @@
+// Prisma schema — MundoPórix
+// Cadena de negocio: Producto → Stock → Cotización → Reserva → Preparación → Recogida
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum RoleName {
+  ADMIN
+  SELLER
+}
+
+enum QuoteStatus {
+  NEW
+  RESERVED
+  PREPARING
+  READY_FOR_PICKUP
+  PICKED_UP
+  CANCELLED
+  EXPIRED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  EXPIRED
+  RELEASED
+  COMPLETED
+}
+
+enum PickupStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Auth / Users
+// ---------------------------------------------------------------------------
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      RoleName @unique
+  users     User[]
+  createdAt DateTime @default(now())
+
+  @@map("roles")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  fullName     String
+  phone        String?
+  passwordHash String
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+  isActive     Boolean  @default(true)
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  quotes       Quote[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("brands")
+}
+
+model Season {
+  id             String          @id @default(cuid())
+  name           String          @unique
+  slug           String          @unique
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  productSeasons ProductSeason[]
+
+  @@map("seasons")
+}
+
+model ProductSeason {
+  productId String
+  seasonId  String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  season    Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@id([productId, seasonId])
+  @@map("product_seasons")
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  description    String?
+  price          Decimal         @db.Decimal(12, 2)
+  imageUrl       String?
+  isActive       Boolean         @default(true)
+  brandId        String
+  categoryId     String
+  brand          Brand           @relation(fields: [brandId], references: [id])
+  category       Category        @relation(fields: [categoryId], references: [id])
+  inventory      Inventory?
+  quoteItems     QuoteItem[]
+  productSeasons ProductSeason[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([isActive])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Inventario (operacional, separado de la información comercial del Producto)
+// ---------------------------------------------------------------------------
+
+model Inventory {
+  id               String   @id @default(cuid())
+  productId        String   @unique
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity         Int      @default(0)
+  reservedQuantity Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  @@map("inventory")
+}
+
+// ---------------------------------------------------------------------------
+// Cotizaciones
+// ---------------------------------------------------------------------------
+
+model Quote {
+  id            String      @id @default(cuid())
+  quoteNumber   String      @unique
+  customerName  String
+  customerPhone String
+  pickupDate    DateTime
+  notes         String?
+  status        QuoteStatus @default(NEW)
+  total         Decimal     @db.Decimal(12, 2)
+  createdById   String?
+  createdBy     User?       @relation(fields: [createdById], references: [id])
+  items         QuoteItem[]
+  reservation   Reservation?
+  pickup        Pickup?
+  auditLogs     AuditLog[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status])
+  @@index([pickupDate])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id        String  @id @default(cuid())
+  quoteId   String
+  quote     Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(12, 2)
+  subtotal  Decimal @db.Decimal(12, 2)
+
+  @@index([quoteId])
+  @@index([productId])
+  @@map("quote_items")
+}
+
+// ---------------------------------------------------------------------------
+// Reservas y recogida
+// ---------------------------------------------------------------------------
+
+model Reservation {
+  id         String            @id @default(cuid())
+  quoteId    String            @unique
+  quote      Quote             @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  status     ReservationStatus @default(ACTIVE)
+  reservedAt DateTime          @default(now())
+  expiresAt  DateTime
+  releasedAt DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([status])
+  @@index([expiresAt])
+  @@map("reservations")
+}
+
+model Pickup {
+  id         String       @id @default(cuid())
+  quoteId    String       @unique
+  quote      Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  status     PickupStatus @default(PENDING)
+  preparedAt DateTime?
+  pickedUpAt DateTime?
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@map("pickups")
+}
+
+// ---------------------------------------------------------------------------
+// Auditoría
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  quoteId   String?
+  quote     Quote?   @relation(fields: [quoteId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
