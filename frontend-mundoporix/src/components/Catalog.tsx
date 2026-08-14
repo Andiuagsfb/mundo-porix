@@ -1,54 +1,134 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { products } from "@/data/products";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { api, ApiError, fetchProducts } from "@/lib/api";
+import type { Brand, Category, Paginated, Product } from "@/lib/types";
 import { money } from "@/lib/format";
 import ProductCard from "./ProductCard";
 
-const categories = [
-  { id: "all", label: "Todos" },
-  { id: "escolar", label: "Escolar" },
-  { id: "escritura", label: "Escritura" },
-  { id: "arte", label: "Arte & manualidades" },
-  { id: "oficina", label: "Oficina" },
-  { id: "ofertas", label: "Ofertas" },
-];
+const MAX_PRICE_LIMIT = 100000;
 
 export default function Catalog() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [maxPrice, setMaxPrice] = useState(30000);
+  const [brand, setBrand] = useState("all");
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE_LIMIT);
   const [sort, setSort] = useState("destacados");
+  const [inStockOnly, setInStockOnly] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return products
-      .filter((p) => {
-        const okQ = p.name.toLowerCase().includes(q);
-        const okC =
-          category === "all" ||
-          p.category === category ||
-          (category === "ofertas" && p.sale);
-        const okP = p.price <= maxPrice;
-        return okQ && okC && okP;
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [result, setResult] = useState<Paginated<Product> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [appliedQuery, setAppliedQuery] = useState<string | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      api.get<Category[]>("/categories"),
+      api.get<Brand[]>("/brands"),
+    ])
+      .then(([cats, brs]) => {
+        if (!active) return;
+        setCategories(cats);
+        setBrands(brs);
       })
-      .sort((a, b) =>
-        sort === "asc"
-          ? a.price - b.price
-          : sort === "desc"
-            ? b.price - a.price
-            : a.order - b.order,
-      );
-  }, [search, category, maxPrice, sort]);
+      .catch(() => {
+        if (active) setCategories([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const [page, setPage] = useState(1);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const queryKey = JSON.stringify([
+    page,
+    debouncedSearch,
+    category,
+    brand,
+    maxPrice,
+    sort,
+    retryKey,
+  ]);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const sortBy =
+      sort === "asc" ? "price" : sort === "desc" ? "price" : "createdAt";
+    const sortOrder = sort === "asc" ? "asc" : "desc";
+    fetchProducts({
+      page,
+      limit: 12,
+      search: debouncedSearch || undefined,
+      categoryId: category === "all" ? undefined : category,
+      brandId: brand === "all" ? undefined : brand,
+      maxPrice: maxPrice < MAX_PRICE_LIMIT ? maxPrice : undefined,
+      sortBy,
+      sortOrder,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        setResult(data);
+        setError(null);
+        setAppliedQuery(queryKey);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        const message =
+          e instanceof ApiError ? e.message : "No se pudo cargar el catálogo.";
+        setError(message);
+        setAppliedQuery(queryKey);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [queryKey, page, debouncedSearch, category, brand, maxPrice, sort, retryKey]);
+
+  const loading = appliedQuery !== queryKey;
 
   const reset = () => {
     setSearch("");
+    setDebouncedSearch("");
     setCategory("all");
-    setMaxPrice(30000);
+    setBrand("all");
+    setMaxPrice(MAX_PRICE_LIMIT);
     setSort("destacados");
+    setInStockOnly(false);
+    setPage(1);
   };
 
-  const resultLabel = `${filtered.length} producto${filtered.length === 1 ? "" : "s"}`;
+  const visibleProducts = useMemo(() => {
+    if (!result) return [];
+    return inStockOnly
+      ? result.data.filter((p) => p.availableQuantity > 0)
+      : result.data;
+  }, [result, inStockOnly]);
+
+  const totalShown = inStockOnly
+    ? visibleProducts.length
+    : (result?.meta.total ?? 0);
+  const resultLabel = `${totalShown} producto${totalShown === 1 ? "" : "s"}`;
+
+  const categoryPills = [
+    { id: "all", label: "Todos" },
+    ...categories.map((c) => ({ id: c.id, label: c.name })),
+  ];
 
   return (
     <>
@@ -84,7 +164,7 @@ export default function Catalog() {
             </div>
           </div>
           <div className="flex gap-2 overflow-auto py-[14px] pb-[22px]">
-            {categories.map((c) => (
+            {categoryPills.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setCategory(c.id)}
@@ -117,40 +197,46 @@ export default function Catalog() {
               <input
                 type="range"
                 min={3000}
-                max={30000}
+                max={MAX_PRICE_LIMIT}
                 step={500}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
                 className="w-full accent-dark"
               />
               <div className="mt-[5px] flex justify-between text-[0.67rem] text-[#8C7D6F]">
-                <span>$3.000</span>
-                <b>{money(maxPrice)}</b>
+                <span>{money(3000)}</span>
+                <b>{maxPrice >= MAX_PRICE_LIMIT ? "Sin límite" : money(maxPrice)}</b>
               </div>
+            </div>
+            <div className="border-t border-line py-4">
+              <span className="mb-[9px] block text-[0.72rem] font-extrabold text-dark">
+                Marca
+              </span>
+              <select
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="w-full rounded-[10px] border border-line bg-white px-[11px] py-[9px] text-[0.74rem] text-muted"
+              >
+                <option value="all">Todas</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="border-t border-line py-4">
               <span className="mb-[9px] block text-[0.72rem] font-extrabold text-dark">
                 Disponibilidad
               </span>
-              <label className="mb-[9px] flex items-center gap-2 text-[0.74rem] text-muted">
-                <input type="checkbox" defaultChecked className="accent-dark" /> En stock
-              </label>
-              <label className="mb-[9px] flex items-center gap-2 text-[0.74rem] text-muted">
-                <input type="checkbox" className="accent-dark" /> Próximamente
-              </label>
-            </div>
-            <div className="border-t border-line py-4">
-              <span className="mb-[9px] block text-[0.72rem] font-extrabold text-dark">
-                Preferencias
-              </span>
-              <label className="mb-[9px] flex items-center gap-2 text-[0.74rem] text-muted">
-                <input type="checkbox" className="accent-dark" /> Más vendidos
-              </label>
-              <label className="mb-[9px] flex items-center gap-2 text-[0.74rem] text-muted">
-                <input type="checkbox" className="accent-dark" /> Novedades
-              </label>
-              <label className="mb-[9px] flex items-center gap-2 text-[0.74rem] text-muted">
-                <input type="checkbox" className="accent-dark" /> Ofertas
+              <label className="flex items-center gap-2 text-[0.74rem] text-muted">
+                <input
+                  type="checkbox"
+                  checked={inStockOnly}
+                  onChange={(e) => setInStockOnly(e.target.checked)}
+                  className="accent-dark"
+                />{" "}
+                Solo en stock
               </label>
             </div>
           </aside>
@@ -164,11 +250,77 @@ export default function Catalog() {
               </div>
               <span className="text-[0.72rem] text-muted">{resultLabel}</span>
             </div>
-            <div className="grid grid-cols-1 gap-[15px] min-[481px]:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
+
+            {error ? (
+              <div className="rounded-[16px] border border-line bg-surface p-8 text-center">
+                <p className="text-[0.82rem] text-muted">{error}</p>
+                <button
+                  onClick={() => setRetryKey((k) => k + 1)}
+                  className="btn btn-primary mt-4 inline-flex"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : loading ? (
+              <div className="grid grid-cols-1 gap-[15px] min-[481px]:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse rounded-[16px] border border-line bg-surface p-[10px]"
+                  >
+                    <div className="h-[235px] rounded-[12px] bg-[#EFE4D5]" />
+                    <div className="mt-[14px] h-[10px] w-1/3 rounded bg-[#EFE4D5]" />
+                    <div className="mt-[8px] h-[14px] w-2/3 rounded bg-[#EFE4D5]" />
+                    <div className="mt-[14px] h-[34px] rounded-[9px] bg-[#EFE4D5]" />
+                  </div>
+                ))}
+              </div>
+            ) : visibleProducts.length === 0 ? (
+              <div className="rounded-[16px] border border-line bg-surface p-8 text-center">
+                <p className="font-display text-[1.6rem] text-dark">
+                  Sin resultados
+                </p>
+                <p className="mx-auto mt-2 max-w-[380px] text-[0.78rem] text-muted">
+                  No encontramos productos con esos filtros. Ajusta la búsqueda o
+                  restablece el catálogo.
+                </p>
+                <button onClick={reset} className="btn btn-primary mt-5 inline-flex">
+                  Restablecer filtros
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-[15px] min-[481px]:grid-cols-2 lg:grid-cols-3">
+                {visibleProducts.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            )}
+
+            {result && result.meta.totalPages > 1 && (
+              <div className="mt-[26px] flex items-center justify-center gap-[8px]">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                  className="grid h-[38px] w-[38px] place-items-center rounded-[11px] border border-line bg-surface text-dark transition-colors hover:bg-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface disabled:hover:text-dark"
+                  aria-label="Página anterior"
+                >
+                  ←
+                </button>
+                <span className="rounded-[11px] border border-line bg-surface px-[14px] py-[8px] text-[0.74rem] font-extrabold text-dark">
+                  {page} / {result.meta.totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage((p) => Math.min(result.meta.totalPages, p + 1))
+                  }
+                  disabled={page === result.meta.totalPages || loading}
+                  className="grid h-[38px] w-[38px] place-items-center rounded-[11px] border border-line bg-surface text-dark transition-colors hover:bg-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface disabled:hover:text-dark"
+                  aria-label="Página siguiente"
+                >
+                  →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>

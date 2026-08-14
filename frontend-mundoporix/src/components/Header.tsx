@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useStore } from "@/context/store-context";
+import UserMenu from "./UserMenu";
 
 const navLinks = [
   { href: "#catalogo", label: "Tienda" },
@@ -11,7 +12,7 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const { count, toggleDrawer } = useStore();
+  const { count, toggleDrawer, openContact } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const focusSearch = () => document.getElementById("search")?.focus();
@@ -40,6 +41,20 @@ export default function Header() {
           >
             ⌕
           </button>
+          <button
+            onClick={openContact}
+            className="hidden h-[42px] items-center gap-[7px] rounded-[11px] border border-line bg-surface px-[13px] text-[0.78rem] font-extrabold text-dark transition-colors hover:border-dark hover:bg-dark hover:text-white md:flex"
+          >
+            Contacto
+          </button>
+          <button
+            onClick={openContact}
+            aria-label="Contacto"
+            className="grid h-[42px] w-[42px] place-items-center rounded-[11px] border border-line bg-surface text-[1rem] text-dark md:hidden"
+          >
+            ✉
+          </button>
+          <UserMenu />
           <button
             onClick={toggleDrawer}
             className="relative flex items-center gap-[9px] rounded-[11px] border border-line bg-surface px-[13px] py-[10px] text-[0.78rem] font-extrabold text-dark"
@@ -70,6 +85,15 @@ export default function Header() {
               {l.label}
             </a>
           ))}
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              openContact();
+            }}
+            className="text-left font-extrabold text-dark"
+          >
+            ✉ Contacto
+          </button>
         </div>
       )}
     </header>

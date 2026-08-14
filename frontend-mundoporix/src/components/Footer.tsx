@@ -1,3 +1,5 @@
+import FooterContactLink from "./FooterContactLink";
+
 export default function Footer() {
   const footerLink =
     "my-[7px] block text-[0.76rem] text-muted";
@@ -32,7 +34,7 @@ export default function Footer() {
             </h4>
             <a href="#" className={footerLink}>Preguntas frecuentes</a>
             <a href="#" className={footerLink}>Cómo cotizar</a>
-            <a href="#" className={footerLink}>Contacto</a>
+            <FooterContactLink className={footerLink} />
           </div>
           <div>
             <h4 className="mb-[14px] text-[0.68rem] font-extrabold uppercase tracking-[0.13em] text-primary">
