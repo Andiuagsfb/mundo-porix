@@ -52,7 +52,7 @@ export default function ContactModal() {
         {details.map((d) => (
           <div
             key={d.label}
-            className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-bg px-[14px] py-[11px]"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-line bg-bg px-[14px] py-[11px]"
           >
             <span className="text-[0.7rem] font-extrabold uppercase tracking-[0.1em] text-primary">
               {d.label}
@@ -60,7 +60,7 @@ export default function ContactModal() {
             {d.href ? (
               <a
                 href={d.href}
-                className="text-[0.8rem] font-bold text-dark hover:underline"
+                className="break-all text-[0.8rem] font-bold text-dark hover:underline"
               >
                 {d.value}
               </a>

@@ -16,6 +16,7 @@ export default function Catalog() {
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE_LIMIT);
   const [sort, setSort] = useState("destacados");
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -183,7 +184,19 @@ export default function Catalog() {
 
       <section id="catalogo" className="pt-2">
         <div className="container lg:grid lg:grid-cols-[230px_1fr] lg:items-start lg:gap-6">
-          <aside className="mb-4 rounded-[16px] border border-line bg-surface/80 p-[19px] lg:sticky lg:top-[105px] lg:mb-0">
+          <button
+            onClick={() => setFiltersOpen((o) => !o)}
+            aria-expanded={filtersOpen}
+            className="mb-3 flex w-full items-center justify-between rounded-[12px] border border-line bg-surface px-[14px] py-[11px] text-[0.74rem] font-extrabold text-dark transition-colors hover:border-dark lg:hidden"
+          >
+            <span>Filtros y disponibilidad</span>
+            <span className="text-[1rem] leading-none">{filtersOpen ? "−" : "+"}</span>
+          </button>
+          <aside
+            className={`mb-4 rounded-[16px] border border-line bg-surface/80 p-[19px] lg:sticky lg:top-[105px] lg:mb-0 ${
+              filtersOpen ? "block" : "hidden"
+            } lg:block`}
+          >
             <div className="mb-[17px] flex items-center justify-between">
               <h3 className="text-[0.88rem] font-bold text-dark">Filtrar productos</h3>
               <button onClick={reset} className="bg-transparent text-[0.7rem] text-danger">

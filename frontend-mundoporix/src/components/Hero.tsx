@@ -2,7 +2,7 @@ export default function Hero() {
   return (
     <section className="pb-7 pt-[26px]">
       <div className="container grid gap-[18px] lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="relative min-h-[350px] overflow-hidden rounded-[25px] bg-[linear-gradient(135deg,#E9D8C5,#DCC5AD)] p-12">
+        <div className="relative min-h-[350px] overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#E9D8C5,#DCC5AD)] p-7 sm:rounded-[25px] sm:p-10 lg:p-12">
           <span className="pointer-events-none absolute -bottom-40 -right-[140px] h-[360px] w-[360px] rounded-full border border-dark/10" />
           <span className="eyebrow">Nueva colección · 2026</span>
           <h1 className="mt-[15px] max-w-[720px] font-display text-[clamp(3.2rem,6vw,5.6rem)] text-dark">

@@ -8,7 +8,7 @@ SELECT setval(
   'quote_number_seq',
   COALESCE(
     (SELECT MAX(substring("quoteNumber" from '([0-9]+)$')::bigint) FROM quotes),
-    0
+    1
   ),
   false
 );

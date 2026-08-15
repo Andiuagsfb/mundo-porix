@@ -18,6 +18,7 @@ datasource db {
 enum RoleName {
   ADMIN
   SELLER
+  CLIENT
 }
 
 enum QuoteStatus {

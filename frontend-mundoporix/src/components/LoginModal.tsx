@@ -48,7 +48,8 @@ export default function LoginModal() {
           Inicia sesión
         </h2>
         <p className="mt-[8px] text-[0.78rem] text-muted">
-          Ingresa con tu cuenta para gestionar el panel de la tienda.
+          Ingresa con tu cuenta para comprar, seguir tus pedidos o gestionar la
+          tienda.
         </p>
       </div>
 
@@ -103,9 +104,15 @@ export default function LoginModal() {
         </button>
       </form>
 
-      <div className="mt-[18px] rounded-[12px] border border-line bg-bg px-[14px] py-[11px] text-[0.68rem] text-muted">
-        Usuario de prueba: <b className="text-dark">admin@mundoporix.com</b> ·
-        contraseña <b className="text-dark">Admin123!</b>
+      <div className="mt-[18px] flex flex-col gap-[7px] rounded-[12px] border border-line bg-bg px-[14px] py-[11px] text-[0.68rem] text-muted">
+        <span>
+          Cliente: <b className="text-dark">cliente@mundoporix.com</b> ·
+          contraseña <b className="text-dark">Cliente123!</b>
+        </span>
+        <span>
+          Admin: <b className="text-dark">admin@mundoporix.com</b> ·
+          contraseña <b className="text-dark">Admin123!</b>
+        </span>
       </div>
     </Modal>
   );

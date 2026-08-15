@@ -49,6 +49,9 @@ La API queda en `http://localhost:3000/api/v1` y la documentación en `http://lo
 | Email                  | Password   | Rol   |
 | ---------------------- | ---------- | ----- |
 | `admin@mundoporix.com` | `Admin123!`| ADMIN |
+| `cliente@mundoporix.com`| `Cliente123!`| CLIENT |
+
+> El seed también crea un catálogo base (categorías, marcas y productos con stock) para probar el flujo de compra del cliente.
 
 ## Estructura de módulos
 
@@ -87,6 +90,13 @@ src/
 | `POST` | `/quotes` | Crear cotización (reserva stock) |
 | `GET`  | `/quotes/:quoteNumber` | Consultar cotización por número |
 | `GET`  | `/health` | Healthcheck |
+
+### Cliente (requieren `Authorization: Bearer <token>`, rol CLIENT)
+| Método | Ruta | Descripción |
+| ------ | ---- | ----------- |
+| `POST` | `/client/quotes` | Crear pedido (reserva stock, se asocia a la cuenta) |
+| `GET`  | `/client/quotes` | Listar mis pedidos |
+| `POST` | `/client/quotes/:id/cancel` | Cancelar mi pedido (libera stock) |
 
 ### Administrativos (requieren `Authorization: Bearer <token>`, ADMIN/SELLER según ruta)
 | Método | Ruta | Descripción |

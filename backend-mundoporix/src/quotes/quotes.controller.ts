@@ -30,6 +30,30 @@ export class QuotesController {
     return this.quotesService.create(dto);
   }
 
+  @Post('client/quotes')
+  @ApiBearerAuth()
+  @Roles($Enums.RoleName.CLIENT)
+  @ApiOperation({ summary: 'Crear pedido del cliente (reserva stock)' })
+  createClient(@Body() dto: CreateQuoteDto, @CurrentUser() user: AuthUser) {
+    return this.quotesService.create(dto, user.id);
+  }
+
+  @Get('client/quotes')
+  @ApiBearerAuth()
+  @Roles($Enums.RoleName.CLIENT)
+  @ApiOperation({ summary: 'Listar mis pedidos (paginado)' })
+  findMyQuotes(@Query() query: QuoteQueryDto, @CurrentUser() user: AuthUser) {
+    return this.quotesService.findMyQuotes(user.id, query);
+  }
+
+  @Post('client/quotes/:id/cancel')
+  @ApiBearerAuth()
+  @Roles($Enums.RoleName.CLIENT)
+  @ApiOperation({ summary: 'Cancelar mi pedido (libera stock)' })
+  cancelMine(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.quotesService.cancelMine(id, user.id);
+  }
+
   @Post('admin/quotes')
   @ApiBearerAuth()
   @Roles($Enums.RoleName.ADMIN, $Enums.RoleName.SELLER)

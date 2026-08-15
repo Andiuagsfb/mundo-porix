@@ -3,6 +3,8 @@ import type {
   AuthResponse,
   Paginated,
   Product,
+  Quote,
+  QuoteStatus,
 } from "@/lib/types";
 
 export const API_BASE = "/api/v1";
@@ -180,4 +182,29 @@ export interface ProductQuery extends PageQuery {
 
 export function fetchProducts(query: ProductQuery) {
   return apiFetch<Paginated<Product>>(`/products${toQueryString(query)}`);
+}
+
+export interface ClientQuoteQuery extends PageQuery {
+  page?: number;
+  limit?: number;
+  status?: QuoteStatus;
+  search?: string;
+}
+
+export function fetchMyQuotes(query: ClientQuoteQuery) {
+  return apiFetch<Paginated<Quote>>(`/client/quotes${toQueryString(query)}`);
+}
+
+export function createClientQuote(body: {
+  customerName: string;
+  customerPhone: string;
+  pickupDate: string;
+  notes?: string;
+  items: { productId: string; quantity: number }[];
+}) {
+  return api.post<Quote>("/client/quotes", body);
+}
+
+export function cancelClientQuote(id: string) {
+  return api.post<Quote>(`/client/quotes/${id}/cancel`, {});
 }

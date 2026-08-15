@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   open: boolean;
@@ -32,9 +33,9 @@ export default function Modal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[130] grid place-items-center overflow-y-auto p-4"
+      className="fixed inset-0 z-[130] overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby={labelledBy}
@@ -44,18 +45,21 @@ export default function Modal({
         onClick={onClose}
         className="fixed inset-0 cursor-default bg-dark/45 backdrop-blur-[3px]"
       />
-      <div
-        className={`relative w-full ${maxWidth} rounded-[22px] border border-line bg-surface p-7 shadow-[0_30px_80px_rgba(61,43,30,0.3)]`}
-      >
-        <button
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="absolute right-[16px] top-[16px] grid h-8 w-8 place-items-center rounded-full bg-[#F0E5D7] text-[1.1rem] leading-none text-dark transition-colors hover:bg-[#E7D8C4]"
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div
+          className={`relative w-full ${maxWidth} rounded-[22px] border border-line bg-surface p-6 shadow-[0_30px_80px_rgba(61,43,30,0.3)] sm:p-7`}
         >
-          ×
-        </button>
-        {children}
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="absolute right-[16px] top-[16px] grid h-8 w-8 place-items-center rounded-full bg-[#F0E5D7] text-[1.1rem] leading-none text-dark transition-colors hover:bg-[#E7D8C4]"
+          >
+            ×
+          </button>
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

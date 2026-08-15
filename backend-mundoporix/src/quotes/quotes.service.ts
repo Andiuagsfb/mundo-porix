@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -202,6 +203,46 @@ export class QuotesService {
   async findAll(query: QuoteQueryDto) {
     const { page, limit, skip } = getPaginationParams(query.page, query.limit);
 
+    const where = this.buildQueryWhere(query);
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.quote.findMany({
+        where,
+        include: quoteInclude,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.quote.count({ where }),
+    ]);
+
+    return buildPaginationResult(rows, total, page, limit);
+  }
+
+  /** Pedidos de un cliente autenticado (filtrados por su cuenta). */
+  async findMyQuotes(userId: string, query: QuoteQueryDto) {
+    const { page, limit, skip } = getPaginationParams(query.page, query.limit);
+
+    const where: Prisma.QuoteWhereInput = {
+      ...this.buildQueryWhere(query),
+      createdById: userId,
+    };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.quote.findMany({
+        where,
+        include: quoteInclude,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.quote.count({ where }),
+    ]);
+
+    return buildPaginationResult(rows, total, page, limit);
+  }
+
+  private buildQueryWhere(query: QuoteQueryDto): Prisma.QuoteWhereInput {
     const where: Prisma.QuoteWhereInput = {};
     if (query.status) {
       where.status = query.status;
@@ -222,19 +263,7 @@ export class QuotesService {
         where.pickupDate.lte = new Date(query.to);
       }
     }
-
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.quote.findMany({
-        where,
-        include: quoteInclude,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.quote.count({ where }),
-    ]);
-
-    return buildPaginationResult(rows, total, page, limit);
+    return where;
   }
 
   async findById(id: string): Promise<QuoteWithRelations> {
@@ -303,6 +332,17 @@ export class QuotesService {
         QuoteStatusEnum.PREPARING,
       ],
     });
+  }
+
+  /** Cancelación de un pedido por su propio cliente (con verificación de propiedad). */
+  async cancelMine(id: string, userId: string): Promise<QuoteWithRelations> {
+    const quote = await this.findById(id);
+    if (quote.createdById !== userId) {
+      throw new ForbiddenException(
+        'No tienes permisos para cancelar esta cotización',
+      );
+    }
+    return this.cancel(id, userId);
   }
 
   /** Expiración automática de cotizaciones con reserva vencida. */

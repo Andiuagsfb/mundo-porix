@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Modal from "./Modal";
 import { useStore } from "@/context/store-context";
-import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
+import { api, ApiError, createClientQuote } from "@/lib/api";
 import { formatDate, money, moneyStr, QUOTE_STATUS_LABELS, QUOTE_STATUS_TONES } from "@/lib/format";
-import type { Quote } from "@/lib/types";
+import type { Quote, User } from "@/lib/types";
 
 interface QuoteFormModalProps {
   open: boolean;
@@ -23,7 +24,8 @@ function tomorrowISO(): string {
 }
 
 export default function QuoteFormModal({ open, onClose }: QuoteFormModalProps) {
-  const { items, total, removeItem, notify } = useStore();
+  const { items, total, removeItem, notify, clearCart } = useStore();
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pickup, setPickup] = useState("");
@@ -31,6 +33,33 @@ export default function QuoteFormModal({ open, onClose }: QuoteFormModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<Quote | null>(null);
+
+  const isClient = user?.roleName === "CLIENT";
+
+  const [lastOpen, setLastOpen] = useState(open);
+  if (open !== lastOpen) {
+    setLastOpen(open);
+    if (open && isClient && user) {
+      setName(user.fullName);
+      setPhone("");
+    }
+  }
+
+  useEffect(() => {
+    if (!open || !isClient) return;
+    let cancelled = false;
+    api
+      .get<User>("/auth/me")
+      .then((profile) => {
+        if (!cancelled && profile.phone) setPhone(profile.phone);
+      })
+      .catch(() => {
+        /* perfil opcional */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isClient]);
 
   const canSubmit = useMemo(
     () =>
@@ -55,13 +84,17 @@ export default function QuoteFormModal({ open, onClose }: QuoteFormModalProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const quote = await api.post<Quote>("/quotes", {
+      const body = {
         customerName: name.trim(),
         customerPhone: phone.trim(),
         pickupDate: new Date(pickup).toISOString(),
         notes: notes.trim() || undefined,
         items: items.map((i) => ({ productId: i.id, quantity: i.qty })),
-      });
+      };
+      const quote = isClient
+        ? await createClientQuote(body)
+        : await api.post<Quote>("/quotes", body);
+      clearCart();
       setSuccess(quote);
       notify(`Cotización ${quote.quoteNumber} creada`);
     } catch (err) {
@@ -147,12 +180,21 @@ export default function QuoteFormModal({ open, onClose }: QuoteFormModalProps) {
               id="quote-form-title"
               className="mt-[6px] font-display text-[2rem] text-dark"
             >
-              Arma tu cotización
+              {isClient ? "Finaliza tu pedido" : "Arma tu cotización"}
             </h2>
             <p className="mt-[8px] text-[0.78rem] text-muted">
-              Déjanos tus datos para reservar los{" "}
+              {isClient
+                ? "Confirma tus datos para reservar los "
+                : "Déjanos tus datos para reservar los "}
               <b className="text-dark">{items.length}</b> producto
               {items.length === 1 ? "" : "s"} y confirmar la recogida.
+              {isClient && (
+                <>
+                  {" "}
+                  Se guardará en tu cuenta como{" "}
+                  <b className="text-dark">pedido</b>.
+                </>
+              )}
             </p>
           </div>
 

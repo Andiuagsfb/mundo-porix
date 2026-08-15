@@ -24,7 +24,7 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group relative rounded-[16px] border border-line bg-surface p-[10px] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(88,61,43,0.08)]">
       <div
-        className="relative grid h-[235px] place-items-center overflow-hidden rounded-[12px]"
+        className="relative grid h-[200px] place-items-center overflow-hidden rounded-[12px] sm:h-[235px]"
         style={{ background: visual.media }}
       >
         <span

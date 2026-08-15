@@ -4,11 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useStore } from "@/context/store-context";
+import MyOrdersModal from "./MyOrdersModal";
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: "Administrador",
+  SELLER: "Vendedor",
+  CLIENT: "Cliente",
+};
 
 export default function UserMenu() {
   const { user, status, logout, openLogin } = useAuth();
   const { notify } = useStore();
   const [open, setOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -61,6 +69,9 @@ export default function UserMenu() {
     notify("Sesión cerrada");
   };
 
+  const isStaff = user.roleName === "ADMIN" || user.roleName === "SELLER";
+  const isClient = user.roleName === "CLIENT";
+
   return (
     <>
       <div className="relative" ref={ref}>
@@ -72,7 +83,7 @@ export default function UserMenu() {
           <span className="grid h-[30px] w-[30px] place-items-center rounded-[9px] bg-dark font-display text-[0.85rem] text-white">
             {initials}
           </span>
-          <span className="max-w-[110px] truncate text-[0.72rem] font-extrabold">
+          <span className="hidden max-w-[110px] truncate text-[0.72rem] font-extrabold sm:block">
             {user.fullName.split(" ")[0]}
           </span>
         </button>
@@ -85,16 +96,30 @@ export default function UserMenu() {
               </p>
               <p className="truncate text-[0.66rem] text-muted">{user.email}</p>
               <span className="mt-[7px] inline-block rounded-full bg-[#E3E8DF] px-[9px] py-[3px] text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-[#4C5A44]">
-                {user.roleName === "ADMIN" ? "Administrador" : "Vendedor"}
+                {ROLE_LABEL[user.roleName] ?? user.roleName}
               </span>
             </div>
-            <Link
-              href="/admin"
-              onClick={() => setOpen(false)}
-              className="mt-[6px] block w-full rounded-[10px] px-[11px] py-[9px] text-left text-[0.74rem] font-bold text-dark transition-colors hover:bg-[#F0E5D7]"
-            >
-              Panel de gestión
-            </Link>
+            {isClient ? (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setOrdersOpen(true);
+                }}
+                className="mt-[6px] block w-full rounded-[10px] px-[11px] py-[9px] text-left text-[0.74rem] font-bold text-dark transition-colors hover:bg-[#F0E5D7]"
+              >
+                Mis pedidos
+              </button>
+            ) : (
+              isStaff && (
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="mt-[6px] block w-full rounded-[10px] px-[11px] py-[9px] text-left text-[0.74rem] font-bold text-dark transition-colors hover:bg-[#F0E5D7]"
+                >
+                  Panel de gestión
+                </Link>
+              )
+            )}
             <button
               onClick={handleLogout}
               disabled={loggingOut}
@@ -105,6 +130,8 @@ export default function UserMenu() {
           </div>
         )}
       </div>
+
+      <MyOrdersModal open={ordersOpen} onClose={() => setOrdersOpen(false)} />
     </>
   );
 }

@@ -146,6 +146,16 @@ h3 {
   pointer-events: auto;
 }
 
+@media (max-width: 480px) {
+  .drawer {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    border-radius: 18px;
+  }
+}
+
 /* Toast */
 .toast {
   position: fixed;
