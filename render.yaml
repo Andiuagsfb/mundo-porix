@@ -1,0 +1,39 @@
+# Render Blueprint — MundoPórix backend
+# Servicio web NestJS que usa Neon (PostgreSQL) como base de datos.
+# Aplicar desde el dashboard: New → Blueprint → conectar el repo Andiuagsfb/mundo-porix
+services:
+  - type: web
+    name: mundo-porix-api
+    runtime: node
+    rootDir: backend-mundoporix
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: API_PREFIX
+        value: api/v1
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: THROTTLE_TTL_SECONDS
+        value: "60"
+      - key: THROTTLE_LIMIT
+        value: "100"
+      - key: RESERVATION_EXPIRATION_HOURS
+        value: "24"
+      - key: NOTIFICATIONS_ENABLED
+        value: "false"
