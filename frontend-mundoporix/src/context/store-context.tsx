@@ -4,10 +4,10 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -19,6 +19,54 @@ export interface QuoteItem {
 }
 
 const CART_KEY = "mp_cart";
+
+const cartListeners = new Set<() => void>();
+let cachedCart: QuoteItem[] = [];
+let cartLoaded = false;
+
+function readCart(): QuoteItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CART_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as QuoteItem[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (i) => i && typeof i.id === "string" && typeof i.qty === "number",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeCart(items: QuoteItem[]) {
+  cachedCart = items;
+  try {
+    window.localStorage.setItem(CART_KEY, JSON.stringify(items));
+  } catch {
+    /* almacenamiento no disponible */
+  }
+  for (const listener of cartListeners) listener();
+}
+
+function subscribeCart(listener: () => void): () => void {
+  cartListeners.add(listener);
+  return () => {
+    cartListeners.delete(listener);
+  };
+}
+
+function getCartSnapshot(): QuoteItem[] {
+  if (!cartLoaded) {
+    cartLoaded = true;
+    cachedCart = readCart();
+  }
+  return cachedCart;
+}
+
+function getCartServerSnapshot(): QuoteItem[] {
+  return [];
+}
 
 interface StoreContextValue {
   items: QuoteItem[];
@@ -39,40 +87,16 @@ interface StoreContextValue {
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-function loadCart(): QuoteItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(CART_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as QuoteItem[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (i) => i && typeof i.id === "string" && typeof i.qty === "number",
-    );
-  } catch {
-    return [];
-  }
-}
-
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<QuoteItem[]>(loadCart);
+  const items = useSyncExternalStore(
+    subscribeCart,
+    getCartSnapshot,
+    getCartServerSnapshot,
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (hydrated.current) {
-      try {
-        window.localStorage.setItem(CART_KEY, JSON.stringify(items));
-      } catch {
-        /* almacenamiento no disponible */
-      }
-    } else {
-      hydrated.current = true;
-    }
-  }, [items]);
 
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -82,26 +106,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(
     (id: string, name: string, price: number, qty = 1) => {
-      setItems((prev) => {
-        const found = prev.find((i) => i.id === id);
-        if (found) {
-          return prev.map((i) =>
+      const current = getCartSnapshot();
+      const found = current.find((i) => i.id === id);
+      const next = found
+        ? current.map((i) =>
             i.id === id ? { ...i, qty: i.qty + qty } : i,
-          );
-        }
-        return [...prev, { id, name, price, qty }];
-      });
+          )
+        : [...current, { id, name, price, qty }];
+      writeCart(next);
       notify(`${name} agregado`);
     },
     [notify],
   );
 
   const removeItem = useCallback((id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    writeCart(getCartSnapshot().filter((i) => i.id !== id));
   }, []);
 
   const clearCart = useCallback(() => {
-    setItems([]);
+    writeCart([]);
   }, []);
 
   const toggleDrawer = useCallback(() => setDrawerOpen((o) => !o), []);
